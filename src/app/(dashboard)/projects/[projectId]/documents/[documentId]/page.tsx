@@ -1,26 +1,37 @@
-import Link from "next/link"
-import { notFound } from "next/navigation"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
-import { Button } from "@/components/ui/button"
-import { ActionButton } from "@/components/ui/action-button"
-import { deleteDocumentAction } from "@/actions/documents"
-import { ArrowLeftIcon, LockIcon, PencilIcon } from "lucide-react"
-import { getStatusBadgeVariant } from "@/lib/helpers"
-import { getDocumentWithUserInfo } from "@/dal/documents/queries"
-import { getCurrentUser } from "@/lib/session"
+import Link from "next/link";
+import { notFound, redirect } from "next/navigation";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { ActionButton } from "@/components/ui/action-button";
+import { deleteDocumentAction } from "@/actions/documents";
+import { ArrowLeftIcon, LockIcon, PencilIcon } from "lucide-react";
+import { getStatusBadgeVariant } from "@/lib/helpers";
+import { getDocumentWithUserInfo } from "@/dal/documents/queries";
+import { getCurrentUser } from "@/lib/session";
+import { getProjectById } from "@/dal/projects/queries";
 
 export default async function DocumentDetailPage({
   params,
 }: PageProps<"/projects/[projectId]/documents/[documentId]">) {
-  const { projectId, documentId } = await params
-  // FIX: Not checking permissions
-  // FIX: Not checking if user has access to project
+  const { projectId, documentId } = await params;
 
-  const document = await getDocumentWithUserInfo(documentId)
-  if (document == null) return notFound()
+  // PERMISSION:
+  const project = await getProjectById(projectId);
+  if (project == null) return notFound();
 
-  const user = await getCurrentUser()
+  const user = await getCurrentUser();
+  if (
+    user == null ||
+    (user.role !== "admin" &&
+      project.department !== null &&
+      user.department !== project.department)
+  ) {
+    return redirect("/");
+  }
+
+  const document = await getDocumentWithUserInfo(documentId);
+  if (document == null) return notFound();
 
   return (
     <div className="space-y-6">
@@ -107,5 +118,5 @@ export default async function DocumentDetailPage({
         </CardContent>
       </Card>
     </div>
-  )
+  );
 }
